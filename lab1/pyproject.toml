@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "lab1"
+version = "0.1.0"
+description = ""
+authors = ["Filippo Greco s309529 <s309529@studenti.polito.it>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11.2"
+ipykernel = "^6.25.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
