@@ -31,3 +31,8 @@ The fitness is calculated as the percentages of wins the individual gets by play
 With some parameters tuning (population size, tournament_size, mutation probability, #offsprings) we get the following result:
 
 *The fittest individual will be the one that tends to play the most of the moves with the rule of sum=0, thus confirming the previous considerations.*
+
+### My peer reviews
+I reviewed the code of:
+1. [Nicolo Iacobone](https://github.com/NicoloIacobone/Computational_Intelligence/)
+2. [Stiven Hidri](https://github.com/stiven-hidri/CI2324)
