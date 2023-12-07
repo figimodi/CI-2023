@@ -79,3 +79,8 @@ We discuss here the motivation behind the coiche of the numeric values of the mo
 
 ## <u>Results</u>
 The results are shown in the `lab9_results.png` image. It shows 4 graphs relative to different problem instances. Each graph tells how many fitness calls were used and how the fitness value changed during the generations. At the bottom there are the most important hyperparameters. 
+
+### <u>My peer reviews</u>
+I reviewed the code of:
+1. [Ivan Magistro Contenta](https://github.com/ivanmag22/computational-intelligence)
+2. [Stiven Hidri](https://github.com/stiven-hidri/CI2324)
