@@ -25,6 +25,9 @@ class Player(ABC):
     def __str__(self) -> str:
         return f'{self.name}'
 
+    def is_agent(self) -> bool:
+        return isinstance(self, MyAgent)
+
     @abstractmethod
     def make_move(self, game: 'Game') -> tuple[tuple[int, int], Move]:
         '''
@@ -96,7 +99,7 @@ class Game(object):
                 ok = self.__move(from_pos, slide)
                 if not ok and isinstance(players[self._current_player_idx], HumanPlayer):
                     print("That's an invalid move, please reenter your move:")
-            print(self)
+            # print(self)
             winner = self.check_winner()
         
         self.winner = players[winner]
@@ -111,7 +114,7 @@ class Game(object):
         assert self._current_player_idx < 2
 
         prev_value = deepcopy(self._board)
-        acceptable = self.__take((from_pos[1], from_pos[0]))
+        acceptable = self.__take(from_pos)
         if acceptable:
             acceptable = self.__slide(from_pos, slide)
             if not acceptable:
@@ -128,20 +131,20 @@ class Game(object):
         acceptable: bool = (from_pos[0] == 0 and from_pos[1] < 5) or (from_pos[0] == 4 and from_pos[1] < 5) or (
             from_pos[1] == 0 and from_pos[0] < 5) or (from_pos[1] == 4 and from_pos[0] < 5) and (self._board[from_pos] < 0 or self._board[from_pos] == self._current_player_idx)
         if acceptable:
-            self._board[from_pos] = self._current_player_idx
+            self._board[(from_pos[1], from_pos[0])] = self._current_player_idx
         return acceptable
 
     def __slide(self, from_pos: tuple[int, int], slide: Move) -> bool:
         '''Slide the other pieces'''
         SIDES = [(0, 0), (0, 4), (4, 0), (4, 4)]
         if from_pos not in SIDES:
-            acceptable_top: bool = from_pos[0] == 0 and (
+            acceptable_top: bool = from_pos[1] == 0 and (
                 slide == Move.BOTTOM or slide == Move.LEFT or slide == Move.RIGHT)
-            acceptable_bottom: bool = from_pos[0] == 4 and (
+            acceptable_bottom: bool = from_pos[1] == 4 and (
                 slide == Move.TOP or slide == Move.LEFT or slide == Move.RIGHT)
-            acceptable_left: bool = from_pos[1] == 0 and (
+            acceptable_left: bool = from_pos[0] == 0 and (
                 slide == Move.BOTTOM or slide == Move.TOP or slide == Move.RIGHT)
-            acceptable_right: bool = from_pos[1] == 0 and (
+            acceptable_right: bool = from_pos[0] == 4 and (
                 slide == Move.BOTTOM or slide == Move.TOP or slide == Move.LEFT)
         else:
             # top left
@@ -160,26 +163,22 @@ class Game(object):
         acceptable: bool = acceptable_top or acceptable_bottom or acceptable_left or acceptable_right
         if acceptable:
             piece = self._board[from_pos]
+
             if slide == Move.TOP:
-                for i in range(from_pos[1], 0, -1):
-                    self._board[(from_pos[0], i)] = self._board[(
-                        from_pos[0], 1 - 1)]
-                self._board[(from_pos[0], 0)] = piece
+                column = [row[from_pos[0]] for row in self._board]
+                rotated_column = column[-1:] + column[:-1]
+                for i, row in enumerate(self._board):
+                    row[from_pos[0]] = rotated_column[i]
             elif slide == Move.BOTTOM:
-                for i in range(from_pos[1], self._board.shape[1], 1):
-                    self._board[(from_pos[0], i)] = self._board[(
-                        from_pos[0], 1 + 1)]
-                self._board[(from_pos[0], self._board.shape[1] - 1)] = piece
+                column = [row[from_pos[0]] for row in self._board]
+                rotated_column = column[1:] + column[:1]
+                for i, row in enumerate(self._board):
+                    row[from_pos[0]] = rotated_column[i]
             elif slide == Move.LEFT:
-                for i in range(from_pos[0], 0, -1):
-                    self._board[(i, from_pos[1])] = self._board[(
-                        1 - 1, from_pos[1])]
-                self._board[(0, from_pos[1])] = piece
+                self._board[from_pos[1]] = np.concatenate((self._board[from_pos[1]][-1:], self._board[from_pos[1]][:-1]), axis=None)
             elif slide == Move.RIGHT:
-                for i in range(from_pos[0], self._board.shape[0], 1):
-                    self._board[(i, from_pos[1])] = self._board[(
-                        1 + 1, from_pos[1])]
-                self._board[(self._board.shape[0] - 1, from_pos[1])] = piece
+                self._board[from_pos[1]] = np.concatenate((self._board[from_pos[1]][1:], self._board[from_pos[1]][:1]), axis=None)
+
         return acceptable
 
     def __available_moves(self) -> None:
