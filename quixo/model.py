@@ -12,7 +12,7 @@ class Players(NamedTuple):
 class Rewards(NamedTuple):
     '''Represents the rewards (in float) to give to the agents after the outcome of a game'''
     winning: float = 1.
-    loosing: float = 0.
+    losing: float = 0.
 
 class Model(object):
     '''
@@ -29,7 +29,7 @@ class Model(object):
 
         if policy1 is not None:
             if self._players.p1.is_agent():
-                self._player1.load_policy(policy1)
+                self._players.p1.load_policy(policy1)
             else:
                 print(Fore.YELLOW + f"WARNING: policy1 was not loaded to player1, since it's not an instance of MyAgent.")
             
