@@ -45,7 +45,7 @@ class Player(ABC):
         return isinstance(self, HumanPlayer)
 
     @abstractmethod
-    def make_move(self, game: Game) -> Move:
+    def make_move(self, game: 'Game') -> Move:
         '''
         game: the Quixo game. You can use it to override the current game with yours, but everything is evaluated by the main game
         return values: this method shall return a tuple of X,Y positions and a move among TOP, BOTTOM, LEFT and RIGHT
@@ -133,7 +133,7 @@ class Game(object):
                     print("That's an invalid move, please reenter your move:")
             
             # Activate the following print if at least one of the player is human
-            if player1.is_human() or player2.is_human:
+            if player1.is_human() or player2.is_human():
                 print(self)
 
             # Check if the game has a winner

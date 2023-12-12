@@ -1,13 +1,13 @@
 from typing import NamedTuple
 from tqdm import tqdm
 from colorama import init, Fore
-from game import Game, Move, RandomPlayer, MyAgent, HumanPlayer
+from game import Game, Move, Player, RandomPlayer, MyAgent, HumanPlayer
 
 init(autoreset=True)
 
 class Players(NamedTuple):
-    player1: Player
-    player2: Player
+    p1: Player
+    p2: Player
 
 class Rewards(NamedTuple):
     '''Represents the rewards (in float) to give to the agents after the outcome of a game'''
