@@ -2,4 +2,5 @@ Include/
 Lib/
 Scripts/
 share/
+__pycache__/
 log.md

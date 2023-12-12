@@ -208,6 +208,12 @@ class Game(object):
         '''hashes the state of the board'''
         return str(self._board.reshape(5 * 5))
 
+    def reset(self) -> None:
+        self.winner: Player = None
+        self._current_player_idx = 1
+        self._board = np.ones((5, 5), dtype=np.uint8) * -1
+        self._available_moves_list: list[(tuple[int, int], Move)] = list()
+
 class RandomPlayer(Player):
     def __init__(self, name: str) -> None:
         super().__init__(name)
@@ -221,7 +227,7 @@ class MyAgent(Player):
     def __init__(self, name: str, exp_rate=0.3) -> None:
         super().__init__(name)
         self._states = list()
-        self._state_values = dict()
+        self._state_value = dict()
         self._lr = 0.2
         self._exp_rate = exp_rate
         self._decay_gamma = 0.9
@@ -232,10 +238,10 @@ class MyAgent(Player):
 
     def feed_reward(self, reward: float) -> None:
         for st in reversed(self._states):
-            if self._states_value.get(st) is None:
-                self._states_value[st] = 0
-            self._states_value[st] += self._lr * (self._decay_gamma * reward - self._states_value[st])
-            reward = self._states_value[st]
+            if self._state_value.get(st) is None:
+                self._state_value[st] = 0
+            self._state_value[st] += self._lr * (self._decay_gamma * reward - self._state_value[st])
+            reward = self._state_value[st]
 
     def __choose_action(self, game: Game) -> tuple[tuple[int, int], Move]:
         possible_moves = game.get_available_moves()
@@ -249,26 +255,36 @@ class MyAgent(Player):
                 from_pos, move = pm
                 next_state = deepcopy(game)
                 next_state.single_move(from_pos, move)
-                next_hash = game.get_hash(next_state)
-                value = 0 if self._states_value.get(next_hash) is None else self._states_value.get(next_hash)
+                next_hash = next_state.get_hash()
+                value = 0 if self._state_value.get(next_hash) is None else self._state_value.get(next_hash)
                 if value >= value_max:
                     value_max = value
                     action = pm
-        
-        # add state to the hash table
+
+        from_pos, move = action
+        next_state = deepcopy(game)
+        next_state.single_move(from_pos, move)
+        next_hash = next_state.get_hash()
         self._states.append(next_hash)
 
         return action
 
-    def save_policy(self):
+    def reset_states(self) -> None:
+        self._states.clear()
+
+    def save_policy(self) -> None:
         fw = open('policy_' + str(self.name), 'wb')
-        pickle.dump(self._states_value, fw)
+        pickle.dump(self._state_value, fw)
         fw.close()
 
-    def load_policy(self, file):
+    def load_policy(self, file) -> None:
+        # TODO: check if file exist => sys.exit("Error")
         fr = open(file, 'rb')
-        self._states_value = pickle.load(fr)
+        self._state_value = pickle.load(fr)
         fr.close()
+
+    def set_exp_rate(self, exp_rate: float=0.3) -> None:
+        self._exp_rate = exp_rate
 
 class HumanPlayer(Player):
     def __init__(self, name: str) -> None:
