@@ -36,10 +36,7 @@ class Game(object):
     def __init__(self, player1: int, player2: int, name1: str = 'player1', name2: str = 'player2') -> None:
         self.winner: int = None
         self._current_player_idx = 1
-        self._players_map = {'RandomPlayer': RandomPlayer, 'HumanPlayer': HumanPlayer, 'RLPlayer': RLPlayer, 'MinMaxPlayer': MinMaxPlayer}
-        p1 = self._players_map.get(player1)(name=name1)
-        p2 = self._players_map.get(player2)(name=name2)
-        self.players = Players(p1, p2)
+        self.players = Players(player1, player2)
         self._board = np.ones((5, 5), dtype=np.uint8) * -1
         self._available_moves_list: list[Move] = list()
         self._emojis = ['❌', '⭕️', '⚪️']

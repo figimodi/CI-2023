@@ -17,3 +17,11 @@ PS C:\Users\grfil\OneDrive\Documenti\PoliTo\Computational Intelligence\CI-2023\q
 The results of the match <class 'game.MyAgent'> vs <class 'game.RandomPlayer'> are shown here:
 The win rate for the player1 is 87.80% on a total of 1000 matches
 ```
+
+2. **15th December**: Testing the MinMaxPlayer against a Random Player on 100 games, the results are the following, with the MinMaxPlayer winning 92% of the times:
+```
+PS C:\Users\grfil\OneDrive\Documenti\PoliTo\Computational Intelligence\CI-2023\quixo\src> python .\main.py
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [1:09:25<00:00, 41.66s/it]100 [10:20<58:51, 41.55s/it]
+The results of the match <class 'player.MinMaxPlayer'> vs <class 'player.RandomPlayer'> are shown here:
+The win rate for the player1 is 92.00% on a total of 100 matches
+```

@@ -16,7 +16,7 @@ class Player(ABC):
     def __str__(self) -> str:
         return f'{self.name}'
 
-    def is_agent(self) -> bool:
+    def is_RLagent(self) -> bool:
         '''Tells if the object Player is an instance of the class RLPlayer'''
         return isinstance(self, RLPlayer)
 
@@ -157,15 +157,18 @@ class MinMaxPlayer(Player):
     The class contains the implementation for the Agent using the Min-Max algorithm with alpha beta pruning.
     '''
 
-    def __init__(self, name: str, exp_rate=0.3) -> None:
+    def __init__(self, name: str, max_depth: int = 5) -> None:
         super().__init__(name)
         self._MIN_VALUE = -10000
         self._MAX_VALUE = 10000
-        self._MAX_DEPTH = 5
+        self._max_depth = max_depth
 
     def make_move(self, game: Game) -> Move:
         coordinates, slide = self.__min_max_decision(game)
         return coordinates, slide
+
+    def set_max_depth(self, max_depth: int) -> None:
+        self._max_depth = max_depth
 
     def __min_max_decision(self, game: Game) -> Move:
         v = self._MIN_VALUE
@@ -201,7 +204,7 @@ class MinMaxPlayer(Player):
                 return depth - 1200
 
         # Check if we reached the depth limit
-        if depth == self._MAX_DEPTH:
+        if depth == self._max_depth:
             return self.__eval3(game)
 
         v = self._MAX_VALUE
@@ -231,7 +234,7 @@ class MinMaxPlayer(Player):
                 return depth - 1200
 
         # Check if we reached the depth limit
-        if depth == self._MAX_DEPTH:
+        if depth == self._max_depth:
             return self.__eval3(game)
 
         v = self._MIN_VALUE
