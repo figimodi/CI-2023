@@ -1,13 +1,13 @@
-from abc import ABC, abstractmethod
 from copy import deepcopy
 from enum import Enum
 from typing import NamedTuple
 import numpy as np
-import random
-import pickle
 import sys
 import io
 
+class Players(NamedTuple):
+    p1: 'Player'
+    p2: 'Player'
 
 class Coordinates(NamedTuple):
     '''Coordinates on the board'''
@@ -26,32 +26,6 @@ class Move(NamedTuple):
     coordinates: Coordinates
     slide: Slide
 
-class Player(ABC):
-    '''Skeleton for different types of players'''
-
-    def __init__(self, name: str) -> None:
-        self.name = name
-        pass
-
-    def __str__(self) -> str:
-        return f'{self.name}'
-
-    def is_agent(self) -> bool:
-        '''Tells if the object Player is an instance of the class MyAgent'''
-        return isinstance(self, MyAgent)
-
-    def is_human(self) -> bool:
-        '''Tells if the object Player is an instance of the class HumanPlayer'''
-        return isinstance(self, HumanPlayer)
-
-    @abstractmethod
-    def make_move(self, game: 'Game') -> Move:
-        '''
-        game: the Quixo game. You can use it to override the current game with yours, but everything is evaluated by the main game
-        return values: this method shall return a tuple of X,Y positions and a move among TOP, BOTTOM, LEFT and RIGHT
-        '''
-        pass
-
 class Game(object):
     '''
     This class represents the state of the game, along with the board,
@@ -59,9 +33,13 @@ class Game(object):
     the match is over.
     '''
 
-    def __init__(self) -> None:
-        self.winner: Player = None
+    def __init__(self, player1: int, player2: int, name1: str = 'player1', name2: str = 'player2') -> None:
+        self.winner: int = None
         self._current_player_idx = 1
+        self._players_map = {'RandomPlayer': RandomPlayer, 'HumanPlayer': HumanPlayer, 'RLPlayer': RLPlayer, 'MinMaxPlayer': MinMaxPlayer}
+        p1 = self._players_map.get(player1)(name=name1)
+        p2 = self._players_map.get(player2)(name=name2)
+        self.players = Players(p1, p2)
         self._board = np.ones((5, 5), dtype=np.uint8) * -1
         self._available_moves_list: list[Move] = list()
         self._emojis = ['❌', '⭕️', '⚪️']
@@ -114,33 +92,33 @@ class Game(object):
         
         return -1
 
-    def play(self, player1: Player, player2: Player) -> int:
+    def play(self) -> int:
         '''Play the game. Returns the winning player'''
-        players = [player1, player2]
         winner = -1
         while winner < 0:
             self._current_player_idx += 1
-            self._current_player_idx %= len(players)
+            self._current_player_idx %= len(self.players)
             valid = False
             
             # Calculate all possible available moves from the current state
             self.__available_moves()
             
             while not valid:
-                coordinates, slide = players[self._current_player_idx].make_move(self)
+                coordinates, slide = self.players[self._current_player_idx].make_move(self)
                 valid = self.__move(coordinates, slide)
-                if not valid and isinstance(players[self._current_player_idx], HumanPlayer):
+                if not valid and isinstance(self.players[self._current_player_idx], HumanPlayer):
                     print("That's an invalid move, please reenter your move:")
             
             # Activate the following print if at least one of the player is human
-            if player1.is_human() or player2.is_human():
+            if self.players[0].is_human() or self.players[0].is_human():
                 print(self)
 
             # Check if the game has a winner
             winner = self.check_winner()
+
+            # Assing the winner to the class and return the corresponing ID
+            self.winner = winner
         
-        # Assing the winner to the class and return the corresponing ID
-        self.winner = players[winner]
         return winner
 
     def single_move(self, coordinates: Coordinates, slide: Slide) -> None:
@@ -151,7 +129,25 @@ class Game(object):
     def get_available_moves(self) -> list[Move]:
         '''Return the possible moves in the current position'''
         return self._available_moves_list
+
+    def ownership_cell(self, player: 'Player', coordinates: Coordinates) -> bool:
+        # TODO: documentation
+        return self._board[coordinates] != -1 and player is self.players[self._board[coordinates]]
         
+    def check_sequence(self, start: int, end: int, step: int) -> bool:
+        if self._board[start % 5, int(start / 5)] == -1:
+            return False
+
+        result = True
+        squares_flat = [i for i in range(start, end, step)]
+        squares = list(map(lambda s : (s % 5, int(s / 5)), squares_flat))
+        
+        for s in range(len(squares) - 1):
+            if self._board[squares[s]] != self._board[squares[s + 1]]:
+                return False
+
+        return result
+
     def get_hash(self) -> str:
         '''Hashes the state of the board'''
         return str(self._board.reshape(5 * 5))
@@ -260,123 +256,4 @@ class Game(object):
                     if ok:
                         self._available_moves_list.append(((x, 4), slide))
 
-
-class RandomPlayer(Player):
-    '''
-    This class contains the implementation for the Random Player.
-    The make_move method is overwrite by simply choosing a random move.
-    '''
-
-    def __init__(self, name: str) -> None:
-        super().__init__(name)
-
-    def make_move(self, game: 'Game') -> Move:
-        coordinates = (random.randint(0, 4), random.randint(0, 4))
-        slide = random.choice([Slide.TOP, Slide.BOTTOM, Slide.LEFT, Slide.RIGHT])
-        return coordinates, slide
-
-class MyAgent(Player):
-    '''
-    The class contains the implementation for the Agent using Reinforcement Learning.
-    It has several methods and attributes:
-    lr:           learning rate: the magnitude of the rewards given to the states
-    exp_rate:     exploration rate, probability of chosing random moves and exploring new strategies
-    decay_gamma:  discount, act as a discount factor
-    states:       contains the path of the player in the game, storing all the states from start to finish
-    state_values: dictionary that conatins (state, value) pair for each state that the agent knows
-    '''
-    def __init__(self, name: str, exp_rate=0.3) -> None:
-        super().__init__(name)
-        self._states = list()
-        self._state_value = dict()
-        self._lr = 0.2
-        self._exp_rate = exp_rate
-        self._decay_gamma = 0.9
-
-    def make_move(self, game: Game) -> Move:
-        coordinates, slide = self.__choose_action(game)
-        return coordinates, slide
-
-    def feed_reward(self, reward: float) -> None:
-        '''Gives rewards to the actions perfomed in the match'''
-        # Starting from the last state of the game, update the value associated to that state
-        for st in reversed(self._states):
-            if self._state_value.get(st) is None:
-                self._state_value[st] = 0
-            self._state_value[st] += self._lr * (self._decay_gamma * reward - self._state_value[st])
-            reward = self._state_value[st]
-
-    def __choose_action(self, game: Game) -> Move:
-        '''Return a move, coordinates + slide'''
-        # Retrieve ll possible moves from the current state (moves have already been calculated)
-        possible_moves = game.get_available_moves()
-
-        # With probability exp_rate the agent choose to play a random move to favor exploration
-        if np.random.uniform(0, 1) <= self._exp_rate:
-            idx = np.random.choice(len(possible_moves))
-            action = possible_moves[idx]
-        else:
-            value_max = -999
-            # For all possible moves we retrieve the value from the dictionary (if the state was already visited)
-            for pm in possible_moves:
-                coordinates, slide = pm
-                next_state = deepcopy(game)
-                next_state.single_move(coordinates, slide)
-                next_hash = next_state.get_hash()
-                value = 0 if self._state_value.get(next_hash) is None else self._state_value.get(next_hash)
-                
-                # If we get a state that has a better score, than we save the action that leads to that state
-                if value >= value_max:
-                    value_max = value
-                    action = pm
-
-        # Briefly update the path of the player through the game (_states.append)
-        coordinates, slide = action
-        next_state = deepcopy(game)
-        next_state.single_move(coordinates, slide)
-        next_hash = next_state.get_hash()
-        self._states.append(next_hash)
-
-        return action
-
-    def reset_states(self) -> None:
-        '''Reset the path of the player into the game (when starting a new game)'''
-        self._states.clear()
-
-    def save_policy(self) -> None:
-        '''Save the dictionary of pairs (state, value) representing the knoledge of the agent'''
-        fw = open('policy_' + str(self.name), 'wb')
-        pickle.dump(self._state_value, fw)
-        fw.close()
-
-    def load_policy(self, file) -> None:
-        '''Load the dictionary of pairs (state, value) representing the knoledge of the agent'''
-        try:
-            fr = open(file, 'rb')
-            self._state_value = pickle.load(fr)
-            fr.close()
-        except FileNotFoundError:
-            sys.exit(f"ERROR: failed to load the policy, file {file} doesn't exist")
-
-    def set_exp_rate(self, exp_rate: float=0.3) -> None:
-        '''
-        Set exploration rate, usefull when we want to test and set exp_rate=0.
-        i.e. only taking rational decisions for which we can estimate the outcome
-        '''
-        self._exp_rate = exp_rate
-
-class HumanPlayer(Player):
-    '''
-    Class for representing a Human Player,
-    the make_move method is overwritten with just inputs from the keyboard,
-    such that an human can play
-    '''
-    def __init__(self, name: str) -> None:
-        super().__init__(name)
-
-    def make_move(self, game: Game) -> Move:
-        '''Asks for (x, y) and slide, that combined represents a move on the board'''
-        x = int(input("Input the x coordinate (from 0 to 4):"))
-        y = int(input("Input the y coordinate (from 0 to 4):"))
-        slide = int(input("Input the slide type (0:top, 1:bottom, 2:left, 3:right):"))
-        return (x, y), Slide(slide)
+from player import Player, RandomPlayer, HumanPlayer, RLPlayer, MinMaxPlayer
