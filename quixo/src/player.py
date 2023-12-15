@@ -56,11 +56,11 @@ class HumanPlayer(Player):
         super().__init__(name)
 
     def make_move(self, game: Game) -> Move:
-        '''Asks for (x, y) and slide, that combined represents a move on the board'''
-        x = int(input("Input the x coordinate (from 0 to 4):"))
-        y = int(input("Input the y coordinate (from 0 to 4):"))
+        '''Asks for (row, column) and slide, that combined represents a move on the board'''
+        row = int(input("Input the row coordinate (from 0 to 4):"))
+        col = int(input("Input the column coordinate (from 0 to 4):"))
         slide = int(input("Input the slide type (0:top, 1:bottom, 2:left, 3:right):"))
-        return (x, y), Slide(slide)
+        return (row, col), Slide(slide)
 
 class RLPlayer(Player):
     '''

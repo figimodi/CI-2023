@@ -110,6 +110,9 @@ class Game(object):
             if self.players[0].is_human() or self.players[0].is_human():
                 print(self)
 
+            print(f'Player {self.players[self._current_player_idx]} plays {coordinates}, {slide}:')
+            print(self)
+
             # Check if the game has a winner
             winner = self.check_winner()
 
@@ -177,23 +180,23 @@ class Game(object):
     def __take(self, coordinates: Coordinates) -> bool:
         '''Take piece  and 'flip it' facing the player symbol'''
         # Acceptable only if in border
-        acceptable: bool = (coordinates[0] == 0 and coordinates[1] < 5) or (coordinates[0] == 4 and coordinates[1] < 5) or (
-            coordinates[1] == 0 and coordinates[0] < 5) or (coordinates[1] == 4 and coordinates[0] < 5) and (self._board[coordinates] < 0 or self._board[coordinates] == self._current_player_idx)
+        acceptable: bool = ((coordinates[0] == 0 and coordinates[1] < 5) or (coordinates[0] == 4 and coordinates[1] < 5) or (
+            coordinates[1] == 0 and coordinates[0] < 5) or (coordinates[1] == 4 and coordinates[0] < 5)) and (self._board[coordinates] < 0 or self._board[coordinates] == self._current_player_idx)
         if acceptable:
-            self._board[(coordinates[1], coordinates[0])] = self._current_player_idx
+            self._board[coordinates] = self._current_player_idx
         return acceptable
 
     def __slide(self, coordinates: Coordinates, slide: Slide) -> bool:
         '''Slide the other pieces'''
         SIDES = [(0, 0), (0, 4), (4, 0), (4, 4)]
         if coordinates not in SIDES:
-            acceptable_top: bool = coordinates[1] == 0 and (
+            acceptable_top: bool = coordinates[0] == 0 and (
                 slide == Slide.BOTTOM or slide == Slide.LEFT or slide == Slide.RIGHT)
-            acceptable_bottom: bool = coordinates[1] == 4 and (
+            acceptable_bottom: bool = coordinates[0] == 4 and (
                 slide == Slide.TOP or slide == Slide.LEFT or slide == Slide.RIGHT)
-            acceptable_left: bool = coordinates[0] == 0 and (
+            acceptable_left: bool = coordinates[1] == 0 and (
                 slide == Slide.BOTTOM or slide == Slide.TOP or slide == Slide.RIGHT)
-            acceptable_right: bool = coordinates[0] == 4 and (
+            acceptable_right: bool = coordinates[1] == 4 and (
                 slide == Slide.BOTTOM or slide == Slide.TOP or slide == Slide.LEFT)
         else:
             # top left
@@ -201,10 +204,10 @@ class Game(object):
                 slide == Slide.BOTTOM or slide == Slide.RIGHT)
             # top right
             acceptable_right: bool = coordinates == (4, 0) and (
-                slide == Slide.BOTTOM or slide == Slide.LEFT)
+                slide == Slide.TOP or slide == Slide.RIGHT)
             # bottom left
             acceptable_left: bool = coordinates == (0, 4) and (
-                slide == Slide.TOP or slide == Slide.RIGHT)
+                slide == Slide.BOTTOM or slide == Slide.LEFT)
             # bottom right
             acceptable_bottom: bool = coordinates == (4, 4) and (
                 slide == Slide.TOP or slide == Slide.LEFT)
@@ -213,20 +216,21 @@ class Game(object):
         
         # If the move is allowed, then slide the pieces on the corresponding column/row
         if acceptable:
-            if slide == Slide.TOP:
-                column = [row[coordinates[0]] for row in self._board]
-                rotated_column = column[-1:] + column[:-1]
+            if slide == Slide.TOP or slide == Slide.BOTTOM:
+                column = [row[coordinates[1]] for row in self._board]
+                column = np.append(column, column[coordinates[0]])
+                column = np.delete(column, coordinates[0])
+                if slide == Slide.TOP:
+                    column = np.concatenate((column[-1:], column[:-1]), axis=0)
                 for i, row in enumerate(self._board):
-                    row[coordinates[0]] = rotated_column[i]
-            elif slide == Slide.BOTTOM:
-                column = [row[coordinates[0]] for row in self._board]
-                rotated_column = column[1:] + column[:1]
-                for i, row in enumerate(self._board):
-                    row[coordinates[0]] = rotated_column[i]
-            elif slide == Slide.LEFT:
-                self._board[coordinates[1]] = np.concatenate((self._board[coordinates[1]][-1:], self._board[coordinates[1]][:-1]), axis=None)
-            elif slide == Slide.RIGHT:
-                self._board[coordinates[1]] = np.concatenate((self._board[coordinates[1]][1:], self._board[coordinates[1]][:1]), axis=None)
+                    row[coordinates[1]] = column[i]
+            elif slide == Slide.LEFT or Slide.RIGHT:
+                row = self._board[coordinates[0]]
+                row = np.append(row, row[coordinates[1]])
+                row = np.delete(row, coordinates[1])
+                if slide == Slide.LEFT:
+                    row = np.concatenate((row[-1:], row[:-1]), axis=0)
+                self._board[coordinates[0]] = row
 
         return acceptable
 
