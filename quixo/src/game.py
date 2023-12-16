@@ -10,19 +10,19 @@ class Players(NamedTuple):
     p2: 'Player'
 
 class Coordinates(NamedTuple):
-    '''Coordinates on the board'''
+    '''Coordinates on the board.'''
     x: int
     y: int
 
 class Slide(Enum):
-    '''Type of slides, for example: TOP means that we push from the TOP to the BOTTOM'''
+    '''Type of slides, for example: TOP means that we push from the TOP to the BOTTOM.'''
     TOP = 0
     BOTTOM = 1
     LEFT = 2
     RIGHT = 3
 
 class Move(NamedTuple):
-    '''Combination of coordinates and type of slide'''
+    '''Combination of coordinates and type of slide.'''
     coordinates: Coordinates
     slide: Slide
 
@@ -68,7 +68,7 @@ class Game(object):
         return captured_output
 
     def check_winner(self) -> int:
-        '''Check the winner. Returns the player ID of the winner if any, otherwise returns -1'''
+        '''Check the winner. Returns the player ID of the winner if any, otherwise returns -1.'''
         # Check the rows
         for x in range(self._board.shape[0]):
             if all(self._board[x, :] == self._board[x, 0]):
@@ -90,7 +90,7 @@ class Game(object):
         return -1
 
     def play(self) -> int:
-        '''Play the game. Returns the winning player'''
+        '''Play the game. Returns the winning player.'''
         winner = -1
         while winner < 0:
             self._current_player_idx += 1
@@ -110,9 +110,6 @@ class Game(object):
             if self.players[0].is_human() or self.players[0].is_human():
                 print(self)
 
-            print(f'Player {self.players[self._current_player_idx]} plays {coordinates}, {slide}:')
-            print(self)
-
             # Check if the game has a winner
             winner = self.check_winner()
 
@@ -122,19 +119,20 @@ class Game(object):
         return winner
 
     def single_move(self, coordinates: Coordinates, slide: Slide) -> None:
-        '''Makes a single move on the board'''
+        '''Makes a single move on the board.'''
         ok = self.__move(coordinates, slide)
         assert ok == True
 
     def get_available_moves(self) -> list[Move]:
-        '''Return the possible moves in the current position'''
+        '''Return the possible moves in the current position.'''
         return self._available_moves_list
 
     def ownership_cell(self, player: 'Player', coordinates: Coordinates) -> bool:
-        # TODO: documentation
+        '''TODO: documentation'''
         return self._board[coordinates] != -1 and player is self.players[self._board[coordinates]]
         
     def check_sequence(self, start: int, end: int, step: int) -> bool:
+        '''TODO: documentation'''
         if self._board[start % 5, int(start / 5)] == -1:
             return False
 
@@ -149,18 +147,18 @@ class Game(object):
         return result
 
     def get_hash(self) -> str:
-        '''Hashes the state of the board'''
+        '''Hashes the state of the board.'''
         return str(self._board.reshape(5 * 5))
 
     def reset(self) -> None:
-        '''Reset the state of the board'''
+        '''Reset the state of the board.'''
         self.winner: Player = None
         self._current_player_idx = 1
         self._board = np.ones((5, 5), dtype=np.uint8) * -1
         self._available_moves_list = list()
     
     def __move(self, coordinates: Coordinates, slide: Slide, mock: bool=False) -> bool:
-        '''Perform a move'''
+        '''Perform a move.'''
         # Save the sate as it is now
         prev_value = deepcopy(self._board)
 
@@ -178,7 +176,7 @@ class Game(object):
         return acceptable
 
     def __take(self, coordinates: Coordinates) -> bool:
-        '''Take piece  and 'flip it' facing the player symbol'''
+        '''Take piece  and 'flip it' facing the player symbol.'''
         # Acceptable only if in border
         acceptable: bool = ((coordinates[0] == 0 and coordinates[1] < 5) or (coordinates[0] == 4 and coordinates[1] < 5) or (
             coordinates[1] == 0 and coordinates[0] < 5) or (coordinates[1] == 4 and coordinates[0] < 5)) and (self._board[coordinates] < 0 or self._board[coordinates] == self._current_player_idx)
@@ -187,7 +185,7 @@ class Game(object):
         return acceptable
 
     def __slide(self, coordinates: Coordinates, slide: Slide) -> bool:
-        '''Slide the other pieces'''
+        '''Slide the other pieces.'''
         SIDES = [(0, 0), (0, 4), (4, 0), (4, 4)]
         if coordinates not in SIDES:
             acceptable_top: bool = coordinates[0] == 0 and (
@@ -235,7 +233,7 @@ class Game(object):
         return acceptable
 
     def __available_moves(self) -> None:
-        '''Calculate all the possible moves from the current state'''
+        '''Calculate all the possible moves from the current state.'''
         # Clear the list containing the possible moves (for the old state)
         self._available_moves_list.clear()
 

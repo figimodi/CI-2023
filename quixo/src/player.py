@@ -7,7 +7,7 @@ import pickle
 import sys
 
 class Player(ABC):
-    '''Skeleton for different types of players'''
+    '''Skeleton for different types of players.'''
 
     def __init__(self, name: str) -> None:
         self.name = name
@@ -17,18 +17,18 @@ class Player(ABC):
         return f'{self.name}'
 
     def is_RLagent(self) -> bool:
-        '''Tells if the object Player is an instance of the class RLPlayer'''
+        '''Tells if the object Player is an instance of the class RLPlayer.'''
         return isinstance(self, RLPlayer)
 
     def is_human(self) -> bool:
-        '''Tells if the object Player is an instance of the class HumanPlayer'''
+        '''Tells if the object Player is an instance of the class HumanPlayer.'''
         return isinstance(self, HumanPlayer)
 
     @abstractmethod
     def make_move(self, game: 'Game') -> Move:
         '''
         game: the Quixo game. You can use it to override the current game with yours, but everything is evaluated by the main game
-        return values: this method shall return a tuple of X,Y positions and a move among TOP, BOTTOM, LEFT and RIGHT
+        return values: this method shall return a tuple of X,Y positions and a move among TOP, BOTTOM, LEFT and RIGHT.
         '''
         pass
 
@@ -42,6 +42,7 @@ class RandomPlayer(Player):
         super().__init__(name)
 
     def make_move(self, game: 'Game') -> Move:
+        '''Make the move in a random fashion.'''
         coordinates = (random.randint(0, 4), random.randint(0, 4))
         slide = random.choice([Slide.TOP, Slide.BOTTOM, Slide.LEFT, Slide.RIGHT])
         return coordinates, slide
@@ -50,13 +51,13 @@ class HumanPlayer(Player):
     '''
     Class for representing a Human Player,
     the make_move method is overwritten with just inputs from the keyboard,
-    such that an human can play
+    such that an human can play.
     '''
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
     def make_move(self, game: Game) -> Move:
-        '''Asks for (row, column) and slide, that combined represents a move on the board'''
+        '''Asks for (row, column) and slide, that combined represents a move on the board.'''
         row = int(input("Input the row coordinate (from 0 to 4):"))
         col = int(input("Input the column coordinate (from 0 to 4):"))
         slide = int(input("Input the slide type (0:top, 1:bottom, 2:left, 3:right):"))
@@ -66,11 +67,11 @@ class RLPlayer(Player):
     '''
     The class contains the implementation for the Agent using Reinforcement Learning.
     It has several methods and attributes:
-    lr:           learning rate: the magnitude of the rewards given to the states
-    exp_rate:     exploration rate, probability of chosing random moves and exploring new strategies
-    decay_gamma:  discount, act as a discount factor
-    states:       contains the path of the player in the game, storing all the states from start to finish
-    state_values: dictionary that conatins (state, value) pair for each state that the agent knows
+    lr:           learning rate: the magnitude of the rewards given to the states.
+    exp_rate:     exploration rate, probability of chosing random moves and exploring new strategies.
+    decay_gamma:  discount, act as a discount factor.
+    states:       contains the path of the player in the game, storing all the states from start to finish.
+    state_values: dictionary that conatins (state, value) pair for each state that the agent knows.
     '''
     def __init__(self, name: str, exp_rate=0.3) -> None:
         super().__init__(name)
@@ -81,11 +82,12 @@ class RLPlayer(Player):
         self._decay_gamma = 0.9
 
     def make_move(self, game: Game) -> Move:
+        '''Returns the coordinates, slide tuple by choosing the best candidate move.'''
         coordinates, slide = self.__choose_action(game)
         return coordinates, slide
 
     def feed_reward(self, reward: float) -> None:
-        '''Gives rewards to the actions perfomed in the match'''
+        '''Gives rewards to the actions perfomed in the match.'''
         # Starting from the last state of the game, update the value associated to that state
         for st in reversed(self._states):
             if self._state_value.get(st) is None:
@@ -94,7 +96,7 @@ class RLPlayer(Player):
             reward = self._state_value[st]
 
     def __choose_action(self, game: Game) -> Move:
-        '''Return a move, coordinates + slide'''
+        '''Return a move, coordinates + slide.'''
         # Retrieve ll possible moves from the current state (moves have already been calculated)
         possible_moves = game.get_available_moves()
 
@@ -127,17 +129,17 @@ class RLPlayer(Player):
         return action
 
     def reset_states(self) -> None:
-        '''Reset the path of the player into the game (when starting a new game)'''
+        '''Reset the path of the player into the game (when starting a new game).'''
         self._states.clear()
 
     def save_policy(self) -> None:
-        '''Save the dictionary of pairs (state, value) representing the knoledge of the agent'''
+        '''Save the dictionary of pairs (state, value) representing the knoledge of the agent.'''
         fw = open('../policies/policy_' + str(self.name), 'wb')
         pickle.dump(self._state_value, fw)
         fw.close()
 
     def load_policy(self, file) -> None:
-        '''Load the dictionary of pairs (state, value) representing the knoledge of the agent'''
+        '''Load the dictionary of pairs (state, value) representing the knoledge of the agent.'''
         try:
             fr = open(file, 'rb')
             self._state_value = pickle.load(fr)
@@ -148,7 +150,7 @@ class RLPlayer(Player):
     def set_exp_rate(self, exp_rate: float=0.3) -> None:
         '''
         Set exploration rate, usefull when we want to test and set exp_rate=0.
-        i.e. only taking rational decisions for which we can estimate the outcome
+        i.e. only taking rational decisions for which we can estimate the outcome.
         '''
         self._exp_rate = exp_rate
 
@@ -164,13 +166,16 @@ class MinMaxPlayer(Player):
         self._max_depth = max_depth
 
     def make_move(self, game: Game) -> Move:
+        '''Return the coordinates, slide tuple that gives the best evaluation of the posistion with a certain depth.'''
         coordinates, slide = self.__min_max_decision(game)
         return coordinates, slide
 
     def set_max_depth(self, max_depth: int) -> None:
+        '''Change the maximum depth that the engine can reach.'''
         self._max_depth = max_depth
 
     def __min_max_decision(self, game: Game) -> Move:
+        '''Return the best move according to the min max algorithm, with the help of alpha beta pruning.'''
         v = self._MIN_VALUE
         alpha = self._MIN_VALUE
         beta = self._MAX_VALUE
@@ -195,6 +200,7 @@ class MinMaxPlayer(Player):
         return action
     
     def __min_value(self, game: Game, alpha: int, beta: int, depth: int) -> int:
+        '''Select the best move in the min layer of the min max algorithm.'''
         # Check if we are in a final position
         game.check_winner()
         if game.winner is not None:
@@ -225,6 +231,7 @@ class MinMaxPlayer(Player):
         return v
 
     def __max_value(self, game: Game, alpha: int, beta: int, depth: int) -> int:        
+        '''Select the best move in the max layer of the min max algorithm.'''
         # Check if we are in a final position
         game.check_winner()
         if game.winner is not None:
@@ -255,6 +262,11 @@ class MinMaxPlayer(Player):
         return v
 
     def __eval1(self, game: Game) -> float:
+        '''
+        First evaluation function to evaluate the position.
+        It considers the cell with different weights and then it counts the ownership of all the cells.
+        The player that owns the most valuable cells is the favourite in the position.
+        '''
         cell_worth = np.array([
             [2, 3, 3, 3, 2],
             [3, 1, 1, 1, 3],
@@ -274,6 +286,9 @@ class MinMaxPlayer(Player):
         return evaluation
     
     def __check_symbol(self, game: Game, coordinates: Coordinates, added_eval: int) -> int:
+        '''
+        TODO: documentation
+        '''
         evaluation = 0
         if game.ownership_cell(self, coordinates):
             evaluation += added_eval
@@ -282,6 +297,9 @@ class MinMaxPlayer(Player):
         return evaluation
 
     def __check_for_threes_and_fours(self, game: Game, start: int, end: int, step: int) -> int:
+        '''
+        TODO: documentation
+        '''
         evaluation = 0
 
         for i in  range(start, end, step):
@@ -294,6 +312,9 @@ class MinMaxPlayer(Player):
         return evaluation
 
     def __eval2(self, game: Game) -> float:
+        '''
+        TODO: documentation
+        '''
         evaluation = 0
         main_diag_start = 0
         main_diag_step = 6
@@ -314,4 +335,5 @@ class MinMaxPlayer(Player):
         return evaluation
 
     def __eval3(self, game: Game) -> float:
+        '''Just combine the two eval methods described before.'''
         return self.__eval1(game) + self.__eval2(game)
