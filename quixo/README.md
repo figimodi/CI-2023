@@ -25,3 +25,17 @@ PS C:\Users\grfil\OneDrive\Documenti\PoliTo\Computational Intelligence\CI-2023\q
 The results of the match <class 'player.MinMaxPlayer'> vs <class 'player.RandomPlayer'> are shown here:
 The win rate for the player1 is 92.00% on a total of 100 matches
 ```
+
+3. **16th December**: After the bug fix on the code this are the performance for the RL Agent (the frist 2000 matches were of training):
+```
+PS C:\Users\grfil\OneDrive\Documenti\PoliTo\Computational Intelligence\CI-2023\quixo\src> python .\main.py
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2000/2000 [2:50:10<00:00,  5.11s/it]
+100%|
+███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [1:57:05<00:00, 14.05s/it]
+The results of the match <class 'player.RLPlayer'> vs <class 'player.RandomPlayer'> are shown here:
+The win rate for the player1 is 63.80% on a total of 500 matches
+```
+And of the MinMaxPlayer>
+```
+PS C:\Users\grfil\OneDrive\Documenti\PoliTo\Computational Intelligence\CI-2023\quixo\src> python .\main.py
+```

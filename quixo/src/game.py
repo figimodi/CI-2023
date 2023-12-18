@@ -71,34 +71,31 @@ class Game(object):
         '''Check the winner. Returns the player ID of the winner if any, otherwise returns -1.'''
         # Check the rows
         for x in range(self._board.shape[0]):
-            if all(self._board[x, :] == self._board[x, 0]):
+            if all(self._board[x, :] == self._board[x, 0]) and self._board[x, 0] != -1:
                 return self._board[x, 0]
         
         # Check the columns
         for y in range(self._board.shape[0]):
-            if all(self._board[:, y] == self._board[0, y]):
+            if all(self._board[:, y] == self._board[0, y]) and self._board[0, y] != -1:
                 return self._board[0, y]
         
         # Check the diagonals
-        if all([self._board[x, x] for x in range(self._board.shape[0])] == self._board[0, 0]):
+        if all([self._board[x, x] for x in range(self._board.shape[0])] == self._board[0, 0]) and self._board[0, 0] != -1:
             return self._board[0, 0]
-        if all([self._board[x, -x] for x in range(self._board.shape[0])] == self._board[-1, -1]):
+        if all([self._board[x, -x] for x in range(self._board.shape[0])] == self._board[-1, -1]) and self._board[0, -1] != -1:
             return self._board[0, -1]
 
         # TODO: add the case in which there are two different five-in-a-row combinations -> wins the opponent
-        
-        return -1
+
+        return None
 
     def play(self) -> int:
         '''Play the game. Returns the winning player.'''
-        winner = -1
-        while winner < 0:
+        winner = None
+        while winner is None:
             self._current_player_idx += 1
             self._current_player_idx %= len(self.players)
             valid = False
-            
-            # Calculate all possible available moves from the current state
-            self.__available_moves()
             
             while not valid:
                 coordinates, slide = self.players[self._current_player_idx].make_move(self)
@@ -109,12 +106,12 @@ class Game(object):
             # Activate the following print if at least one of the player is human
             if self.players[0].is_human() or self.players[0].is_human():
                 print(self)
-
+                
             # Check if the game has a winner
             winner = self.check_winner()
 
-            # Assing the winner to the class and return the corresponing ID
-            self.winner = winner
+        # Assing the winner to the class and return the corresponing ID
+        self.winner = winner
         
         return winner
 
@@ -125,6 +122,8 @@ class Game(object):
 
     def get_available_moves(self) -> list[Move]:
         '''Return the possible moves in the current position.'''
+        # Calculate all possible available moves from the current state
+        self.__available_moves()
         return self._available_moves_list
 
     def ownership_cell(self, player: 'Player', coordinates: Coordinates) -> bool:

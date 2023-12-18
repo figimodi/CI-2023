@@ -159,7 +159,7 @@ class MinMaxPlayer(Player):
     The class contains the implementation for the Agent using the Min-Max algorithm with alpha beta pruning.
     '''
 
-    def __init__(self, name: str, max_depth: int = 5) -> None:
+    def __init__(self, name: str, max_depth: int = 3) -> None:
         super().__init__(name)
         self._MIN_VALUE = -10000
         self._MAX_VALUE = 10000
@@ -187,6 +187,7 @@ class MinMaxPlayer(Player):
             next_position = deepcopy(game)
             next_position.single_move(coordinates, slide)
 
+            # print(f'Analyzing move: {coordinates}, {slide}...')
             min_result = self.__min_value(next_position, alpha, beta, 1)
             if min_result > v:
                 v = min_result
@@ -202,9 +203,9 @@ class MinMaxPlayer(Player):
     def __min_value(self, game: Game, alpha: int, beta: int, depth: int) -> int:
         '''Select the best move in the min layer of the min max algorithm.'''
         # Check if we are in a final position
-        game.check_winner()
-        if game.winner is not None:
-            if game.winner is self:
+        winner = game.check_winner()
+        if winner is not None:
+            if game.players[winner] is self:
                 return 1200 - depth
             else:
                 return depth - 1200
@@ -233,9 +234,9 @@ class MinMaxPlayer(Player):
     def __max_value(self, game: Game, alpha: int, beta: int, depth: int) -> int:        
         '''Select the best move in the max layer of the min max algorithm.'''
         # Check if we are in a final position
-        game.check_winner()
-        if game.winner is not None:
-            if game.winner is self:
+        winner = game.check_winner()
+        if winner is not None:
+            if game.players[winner] is self:
                 return 1200 - depth
             else:
                 return depth - 1200
