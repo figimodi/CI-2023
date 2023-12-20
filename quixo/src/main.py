@@ -18,10 +18,10 @@ if __name__ == '__main__':
     # rl_model.training(rounds=2000)
 
     # Setting depth to min max player
-    min_max_p.set_max_depth(5)
+    min_max_p.set_max_depth(3)
 
     # Setting the policies to the agent player. The policy will be used to play in the test phase
-    # rl_p.load_policy('../policies/policy_rl_player')
+    rl_p.load_policy('../policies/policy_rl_player')
     
     # Start testing 
     model.testing(rounds=10)

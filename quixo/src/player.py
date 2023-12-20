@@ -187,8 +187,7 @@ class MinMaxPlayer(Player):
             next_position = deepcopy(game)
             next_position.single_move(coordinates, slide)
 
-            # print(f'Analyzing move: {coordinates}, {slide}...')
-            min_result = self.__min_value(next_position, alpha, beta, 1)
+            min_result = -self.__min_value(next_position, alpha, beta, 1)
             if min_result > v:
                 v = min_result
                 action = pm

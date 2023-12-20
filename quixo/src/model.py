@@ -25,7 +25,7 @@ class Model(object):
         self._game = Game(RandomPlayer('player1'), RandomPlayer('player2'))
         self._rewards = Rewards() 
 
-    def set_players(self, player1: Player = RandomPlayer('player1'), player2: Player = RandomPlayer('player1')) -> None:
+    def set_players(self, player1: Player = RandomPlayer('player1'), player2: Player = RandomPlayer('player2')) -> None:
         '''Sets the type of the players that will play the game.'''
         self._game = Game(player1, player2)
 

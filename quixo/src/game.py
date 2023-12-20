@@ -96,7 +96,6 @@ class Game(object):
             self._current_player_idx += 1
             self._current_player_idx %= len(self.players)
             valid = False
-            
             while not valid:
                 coordinates, slide = self.players[self._current_player_idx].make_move(self)
                 valid = self.__move(coordinates, slide)
@@ -106,7 +105,7 @@ class Game(object):
             # Activate the following print if at least one of the player is human
             if self.players[0].is_human() or self.players[0].is_human():
                 print(self)
-                
+                        
             # Check if the game has a winner
             winner = self.check_winner()
 
