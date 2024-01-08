@@ -82,7 +82,7 @@ class Game(object):
         # Check the diagonals
         if all([self._board[x, x] for x in range(self._board.shape[0])] == self._board[0, 0]) and self._board[0, 0] != -1:
             return self._board[0, 0]
-        if all([self._board[x, -x] for x in range(self._board.shape[0])] == self._board[-1, -1]) and self._board[0, -1] != -1:
+        if all([self._board[x, -x-1] for x in range(self._board.shape[0])] == self._board[0, -1]) and self._board[0, -1] != -1:
             return self._board[0, -1]
 
         # TODO: add the case in which there are two different five-in-a-row combinations -> wins the opponent
@@ -99,13 +99,15 @@ class Game(object):
             while not valid:
                 coordinates, slide = self.players[self._current_player_idx].make_move(self)
                 valid = self.__move(coordinates, slide)
-                if not valid and isinstance(self.players[self._current_player_idx], HumanPlayer):
+                if not valid and self.players[self._current_player_idx].is_human():
                     print("That's an invalid move, please reenter your move:")
             
             # Activate the following print if at least one of the player is human
             if self.players[0].is_human() or self.players[0].is_human():
                 print(self)
-                        
+            
+            print(self)
+
             # Check if the game has a winner
             winner = self.check_winner()
 
@@ -150,7 +152,7 @@ class Game(object):
 
     def reset(self) -> None:
         '''Reset the state of the board.'''
-        self.winner: Player = None
+        self.winner = None
         self._current_player_idx = 1
         self._board = np.ones((5, 5), dtype=np.uint8) * -1
         self._available_moves_list = list()
