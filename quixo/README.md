@@ -52,3 +52,13 @@ PS C:\Users\grfil\OneDrive\Documenti\PoliTo\Computational Intelligence\CI-2023\q
 The results of the match <class 'player.RandomPlayer'> vs <class 'player.RLPlayer'> are shown here:
 The win rate for the player1 is 30.40% on a total of 500 matches
 ```
+
+5. **8th January**:
+Games between RL vs RL (trained on each other)
+```
+PS C:\Users\grfil\OneDrive\Documenti\PoliTo\Computational Intelligence\CI-2023\quixo\src> python.exe .\main.py
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [1:07:04<00:00,  8.05s/it]
+100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 250/250 [09:27<00:00,  2.27s/it]
+The results of the match <class 'player.RLPlayer'> vs <class 'player.RLPlayer'> are shown here:
+The win rate for the player1 is 100.00% on a total of 250 matches
+```

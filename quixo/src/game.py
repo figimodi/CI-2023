@@ -252,5 +252,3 @@ class Game(object):
                     ok = self.__move((x, 4), slide, mock=True)
                     if ok:
                         self._available_moves_list.append(((x, 4), slide))
-
-from player import Player, RandomPlayer, HumanPlayer, RLPlayer, MinMaxPlayer

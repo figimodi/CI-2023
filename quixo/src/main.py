@@ -20,7 +20,7 @@ if __name__ == '__main__':
     rl_p2.load_policy('../policies/policy_rl_player2')
 
     # Train the model
-    rl_model.training(rounds=1000)
+    rl_model.training(rounds=500)
 
     # Setting depth to min max player
     # min_max_p.set_max_depth(3)
