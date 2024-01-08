@@ -35,7 +35,20 @@ PS C:\Users\grfil\OneDrive\Documenti\PoliTo\Computational Intelligence\CI-2023\q
 The results of the match <class 'player.RLPlayer'> vs <class 'player.RandomPlayer'> are shown here:
 The win rate for the player1 is 63.80% on a total of 500 matches
 ```
-And of the MinMaxPlayer>
+
+4. **7th January**:
 ```
 PS C:\Users\grfil\OneDrive\Documenti\PoliTo\Computational Intelligence\CI-2023\quixo\src> python .\main.py
+100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2000/2000 [1:53:13<00:00,  3.40s/it]
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [10:00<00:00,  1.20s/it]
+The results of the match <class 'player.RLPlayer'> vs <class 'player.RandomPlayer'> are shown here:
+The win rate for the player1 is 100.00% on a total of 500 matches
+```
+
+```
+PS C:\Users\grfil\OneDrive\Documenti\PoliTo\Computational Intelligence\CI-2023\quixo\src> python .\main.py
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4000/4000 [2:34:21<00:00,  2.32s/it]
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [48:17<00:00,  5.79s/it]
+The results of the match <class 'player.RandomPlayer'> vs <class 'player.RLPlayer'> are shown here:
+The win rate for the player1 is 30.40% on a total of 500 matches
 ```

@@ -122,4 +122,4 @@ class RLModel(Model):
         if self._game.players.p2.is_RLagent():
             self._game.players.p2.set_exp_rate(0)
 
-        super().testing()
+        super().testing(rounds)
