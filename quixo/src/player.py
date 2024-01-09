@@ -16,6 +16,12 @@ class Player(ABC):
     def __str__(self) -> str:
         return f'{self.name}'
 
+    def __eq__(self, other) -> bool:
+        if self.name == other.name:
+            return True
+        else:
+            return False
+
     def is_RLagent(self) -> bool:
         '''Tells if the object Player is an instance of the class RLPlayer.'''
         return isinstance(self, RLPlayer)
@@ -176,26 +182,23 @@ class MinMaxPlayer(Player):
 
     def __min_max_decision(self, game: Game) -> Move:
         '''Return the best move according to the min max algorithm, with the help of alpha beta pruning.'''
-        v = self._MIN_VALUE
+        best_eval = self._MIN_VALUE
         alpha = self._MIN_VALUE
         beta = self._MAX_VALUE
 
         possible_moves = game.get_available_moves()
-
+        action = random.choice(possible_moves)
         for pm in possible_moves:
             coordinates, slide = pm
             next_position = deepcopy(game)
             next_position.single_move(coordinates, slide)
 
-            min_result = -self.__min_value(next_position, alpha, beta, 1)
-            if min_result > v:
-                v = min_result
+            child_evaluation = self.__min_value(next_position, alpha, beta, 1)
+            if child_evaluation > best_eval:
+                best_eval = child_evaluation
                 action = pm
 
-            if v >= beta:
-                break
-
-            alpha = max(alpha, v)
+            alpha = max(alpha, best_eval)
 
         return action
     
@@ -205,15 +208,15 @@ class MinMaxPlayer(Player):
         winner = game.check_winner()
         if winner is not None:
             if game.players[winner] is self:
-                return 1200 - depth
+                return self._MAX_VALUE
             else:
-                return depth - 1200
+                return self._MIN_VALUE
 
         # Check if we reached the depth limit
         if depth == self._max_depth:
             return self.__eval3(game)
 
-        v = self._MAX_VALUE
+        best_eval = self._MAX_VALUE
         possible_moves = game.get_available_moves()
 
         for pm in possible_moves:
@@ -221,14 +224,12 @@ class MinMaxPlayer(Player):
             next_position = deepcopy(game)
             next_position.single_move(coordinates, slide)
 
-            v = min(v, self.__max_value(next_position, alpha, beta, depth + 1))
-            
-            if v <= alpha:
-                return v;
-                
-            beta = min(beta, v);    
+            best_eval = min(best_eval, self.__max_value(next_position, alpha, beta, depth + 1))        
+            beta = min(beta, best_eval)    
+            if beta <= alpha:
+                break
 
-        return v
+        return best_eval
 
     def __max_value(self, game: Game, alpha: int, beta: int, depth: int) -> int:        
         '''Select the best move in the max layer of the min max algorithm.'''
@@ -236,15 +237,15 @@ class MinMaxPlayer(Player):
         winner = game.check_winner()
         if winner is not None:
             if game.players[winner] is self:
-                return 1200 - depth
+                return self._MAX_VALUE
             else:
-                return depth - 1200
+                return self._MIN_VALUE
 
         # Check if we reached the depth limit
         if depth == self._max_depth:
             return self.__eval3(game)
 
-        v = self._MIN_VALUE
+        best_eval = self._MIN_VALUE
         possible_moves = game.get_available_moves()
 
         for pm in possible_moves:
@@ -252,14 +253,12 @@ class MinMaxPlayer(Player):
             next_position = deepcopy(game)
             next_position.single_move(coordinates, slide)
 
-            v = max(v, self.__min_value(next_position, alpha, beta, depth + 1))
-            
-            if v >= beta:
-                return v;
-                
-            alpha = max(alpha, v);    
+            best_eval = max(best_eval, self.__min_value(next_position, alpha, beta, depth + 1))
+            alpha = max(alpha, best_eval)
+            if beta <= alpha:
+                break    
 
-        return v
+        return best_eval
 
     def __eval1(self, game: Game) -> float:
         '''
@@ -278,9 +277,10 @@ class MinMaxPlayer(Player):
         evaluation = 0
         for x in range(5):
             for y in range(5):
-                if game.ownership_cell(self, (x, y)):
+                own = game.ownership_cell(self, (x, y))
+                if own:
                     evaluation += cell_worth[(x, y)]
-                else:
+                elif own is not None:
                     evaluation -= cell_worth[(x, y)]
         
         return evaluation

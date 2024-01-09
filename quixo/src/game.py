@@ -106,8 +106,6 @@ class Game(object):
             if self.players[0].is_human() or self.players[0].is_human():
                 print(self)
             
-            print(self)
-
             # Check if the game has a winner
             winner = self.check_winner()
 
@@ -129,7 +127,13 @@ class Game(object):
 
     def ownership_cell(self, player: 'Player', coordinates: Coordinates) -> bool:
         '''TODO: documentation'''
-        return self._board[coordinates] != -1 and player is self.players[self._board[coordinates]]
+
+        if self._board[coordinates] == -1:
+            return None
+        elif player == self.players[self._board[coordinates]]:
+            return True
+        
+        return False
         
     def check_sequence(self, start: int, end: int, step: int) -> bool:
         '''TODO: documentation'''
