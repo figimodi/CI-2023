@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import copy, deepcopy
 from enum import Enum
 from typing import NamedTuple
 import numpy as np
@@ -67,6 +67,12 @@ class Game(object):
         captured_output = output_buffer.getvalue()
         return captured_output
 
+    def get_board(self) -> np.array:
+        return self._board
+
+    def set_board(self, board: np.array) -> None:
+        self._board = board
+
     def check_winner(self) -> int:
         '''Check the winner. Returns the player ID of the winner if any, otherwise returns -1.'''
         # Check the rows
@@ -105,7 +111,7 @@ class Game(object):
             # Activate the following print if at least one of the player is human
             if self.players[0].is_human() or self.players[0].is_human():
                 print(self)
-            
+
             # Check if the game has a winner
             winner = self.check_winner()
 
@@ -164,18 +170,18 @@ class Game(object):
     def __move(self, coordinates: Coordinates, slide: Slide, mock: bool=False) -> bool:
         '''Perform a move.'''
         # Save the sate as it is now
-        prev_value = deepcopy(self._board)
+        prev_value = copy(self._board)
 
         # Check the validity of the move
         acceptable = self.__take(coordinates)
         if acceptable:
             acceptable = self.__slide(coordinates, slide)
             if not acceptable:
-                self._board = deepcopy(prev_value)
+                self._board = copy(prev_value)
 
         # Allow to perform __move but without affecting the board
         if mock:
-            self._board = deepcopy(prev_value)
+            self._board = copy(prev_value)
 
         return acceptable
 

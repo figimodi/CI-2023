@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from copy import deepcopy
+from copy import copy, deepcopy
 from game import Game, Coordinates, Slide, Move
+from collections import defaultdict
 import numpy as np
 import random
 import pickle
@@ -79,11 +80,11 @@ class RLPlayer(Player):
     states:       contains the path of the player in the game, storing all the states from start to finish.
     state_values: dictionary that conatins (state, value) pair for each state that the agent knows.
     '''
-    def __init__(self, name: str, exp_rate=0.3) -> None:
+    def __init__(self, name: str, exp_rate=0.3, lr=0.2) -> None:
         super().__init__(name)
         self._states = list()
-        self._state_value = dict()
-        self._lr = 0.2
+        self._state_value = defaultdict()
+        self._lr = lr
         self._exp_rate = exp_rate
         self._decay_gamma = 0.9
 
@@ -115,11 +116,12 @@ class RLPlayer(Player):
             # For all possible moves we retrieve the value from the dictionary (if the state was already visited)
             for pm in possible_moves:
                 coordinates, slide = pm
-                next_state = deepcopy(game)
-                next_state.single_move(coordinates, slide)
-                next_hash = next_state.get_hash()
+                prev_value = copy(game.get_board())
+                game.single_move(coordinates, slide)
+                next_hash = game.get_hash()
+                game.set_board(prev_value)
                 value = 0 if self._state_value.get(next_hash) is None else self._state_value.get(next_hash)
-                
+
                 # If we get a state that has a better score, than we save the action that leads to that state
                 if value >= value_max:
                     value_max = value
@@ -127,9 +129,10 @@ class RLPlayer(Player):
 
         # Briefly update the path of the player through the game (_states.append)
         coordinates, slide = action
-        next_state = deepcopy(game)
-        next_state.single_move(coordinates, slide)
-        next_hash = next_state.get_hash()
+        prev_value = copy(game.get_board())
+        game.single_move(coordinates, slide)
+        next_hash = game.get_hash()
+        game.set_board(prev_value)
         self._states.append(next_hash)
 
         return action
@@ -190,10 +193,14 @@ class MinMaxPlayer(Player):
         action = random.choice(possible_moves)
         for pm in possible_moves:
             coordinates, slide = pm
-            next_position = deepcopy(game)
-            next_position.single_move(coordinates, slide)
-
-            child_evaluation = self.__min_value(next_position, alpha, beta, 1)
+            prev_value = copy(game.get_board())
+            game.single_move(coordinates, slide)
+            print("root")
+            print(game)
+            child_evaluation = self.__min_value(game, alpha, beta, 1)
+            game.set_board(prev_value)
+            print("root")
+            print(game)
             if child_evaluation > best_eval:
                 best_eval = child_evaluation
                 action = pm
@@ -221,13 +228,17 @@ class MinMaxPlayer(Player):
 
         for pm in possible_moves:
             coordinates, slide = pm
-            next_position = deepcopy(game)
-            next_position.single_move(coordinates, slide)
+            prev_value = copy(game.get_board())
+            game.single_move(coordinates, slide)
 
-            best_eval = min(best_eval, self.__max_value(next_position, alpha, beta, depth + 1))        
+            print(game)
+            best_eval = min(best_eval, self.__max_value(game, alpha, beta, depth + 1))      
+            game.set_board(prev_value)  
+            
             beta = min(beta, best_eval)    
             if beta <= alpha:
                 break
+            
 
         return best_eval
 
@@ -250,10 +261,13 @@ class MinMaxPlayer(Player):
 
         for pm in possible_moves:
             coordinates, slide = pm
-            next_position = deepcopy(game)
-            next_position.single_move(coordinates, slide)
+            prev_value = copy(game.get_board())
+            game.single_move(coordinates, slide)
 
-            best_eval = max(best_eval, self.__min_value(next_position, alpha, beta, depth + 1))
+            print(game)
+            best_eval = max(best_eval, self.__min_value(game, alpha, beta, depth + 1))
+            game.set_board(prev_value)
+            
             alpha = max(alpha, best_eval)
             if beta <= alpha:
                 break    
