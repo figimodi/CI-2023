@@ -35,7 +35,7 @@ class Model(object):
         pass
 
     @abstractmethod
-    def testing(self, rounds=5000) -> None:
+    def testing(self, rounds=5000) -> int:
         '''Test the agent(s).'''
         wins = [0, 0]
 
@@ -53,6 +53,8 @@ class Model(object):
 
         print(f"The results of the match {type(self._game.players.p1)} vs {type(self._game.players.p2)} are shown here:")
         print(f"The win rate for the player1 is {win_rate_p1:.2f}% on a total of {rounds} matches")
+
+        return win_rate_p1
 
     def single_match(self) -> None:        
         '''Method for playing a single match (To play with an Human for example).'''
@@ -114,7 +116,7 @@ class RLModel(Model):
         if self._game.players.p2.is_RLagent():
             self._game.players.p2.save_policy()
 
-    def testing(self, rounds=5000) -> None:
+    def testing(self, rounds=5000) -> int:
         '''TODO: documentation'''
         # Set exploration rate to 0, since we don't want to explore anymore
         if self._game.players.p1.is_RLagent():
@@ -122,4 +124,4 @@ class RLModel(Model):
         if self._game.players.p2.is_RLagent():
             self._game.players.p2.set_exp_rate(0)
 
-        super().testing(rounds)
+        return super().testing(rounds)

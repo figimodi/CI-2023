@@ -33,7 +33,8 @@ The results of the match <class 'player.RandomPlayer'> vs <class 'player.RLPlaye
 The win rate for the player1 is 35.00% on a total of 100 matches
 ```
 
-### <u>MinMax vs RL Agent</u>
+### <u>MinMax vs Random</u>
 ```
-
+The results of the match <class 'player.MinMaxPlayer'> vs <class 'player.RandomPlayer'> are shown here:
+The win rate for the player1 is 100.00% on a total of 100 matches
 ```

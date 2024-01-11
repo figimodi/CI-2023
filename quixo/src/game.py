@@ -73,6 +73,12 @@ class Game(object):
     def set_board(self, board: np.array) -> None:
         self._board = board
 
+    def get_current_player(self) -> int:
+        return self._current_player_idx
+
+    def set_current_player(self, player_idx) -> None:
+        self._current_player_idx = player_idx
+
     def check_winner(self) -> int:
         '''Check the winner. Returns the player ID of the winner if any, otherwise returns -1.'''
         # Check the rows
@@ -109,9 +115,9 @@ class Game(object):
                     print("That's an invalid move, please reenter your move:")
             
             # Activate the following print if at least one of the player is human
-            if self.players[0].is_human() or self.players[0].is_human():
+            if self.players[0].is_human() or self.players[1].is_human():
                 print(self)
-
+                
             # Check if the game has a winner
             winner = self.check_winner()
 
@@ -125,11 +131,18 @@ class Game(object):
         ok = self.__move(coordinates, slide)
         assert ok == True
 
-    def get_available_moves(self) -> list[Move]:
+    def get_available_moves(self, clear: bool = True) -> list[Move]:
         '''Return the possible moves in the current position.'''
         # Calculate all possible available moves from the current state
-        self.__available_moves()
-        return self._available_moves_list
+        new_available_moves = self.__available_moves()
+
+        if clear:
+            # Clear the list containing the possible moves (for the old state)
+            self._available_moves_list.clear()
+            for move in new_available_moves:
+                self._available_moves_list.append(move)
+
+        return new_available_moves
 
     def ownership_cell(self, player: 'Player', coordinates: Coordinates) -> bool:
         '''TODO: documentation'''
@@ -242,25 +255,26 @@ class Game(object):
 
         return acceptable
 
-    def __available_moves(self) -> None:
+    def __available_moves(self) -> list[Move]:
         '''Calculate all the possible moves from the current state.'''
-        # Clear the list containing the possible moves (for the old state)
-        self._available_moves_list.clear()
-
+        moves = list()
+        
         # Try all possible moves (with mock=True not to modify the board)
         for x in range(5):
             for slide in Slide:
                 ok = self.__move((0, x), slide, mock=True)
                 if ok:
-                    self._available_moves_list.append(((0, x), slide))
+                    moves.append(((0, x), slide))
                 ok = self.__move((4, x), slide, mock=True)
                 if ok:
-                    self._available_moves_list.append(((4, x), slide))
+                    moves.append(((4, x), slide))
                 
                 if x != 0 and x != 4:
                     ok = self.__move((x, 0), slide, mock=True)
                     if ok:
-                        self._available_moves_list.append(((x, 0), slide))     
+                        moves.append(((x, 0), slide))     
                     ok = self.__move((x, 4), slide, mock=True)
                     if ok:
-                        self._available_moves_list.append(((x, 4), slide))
+                        moves.append(((x, 4), slide))
+
+        return moves

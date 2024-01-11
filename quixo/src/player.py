@@ -163,6 +163,9 @@ class RLPlayer(Player):
         '''
         self._exp_rate = exp_rate
 
+    def set_learning_rate(self, lr: float) -> None:
+        self._lr = lr
+
 class MinMaxPlayer(Player):
     '''
     The class contains the implementation for the Agent using the Min-Max algorithm with alpha beta pruning.
@@ -189,18 +192,17 @@ class MinMaxPlayer(Player):
         alpha = self._MIN_VALUE
         beta = self._MAX_VALUE
 
-        possible_moves = game.get_available_moves()
+        possible_moves = game.get_available_moves(clear=False)
         action = random.choice(possible_moves)
         for pm in possible_moves:
             coordinates, slide = pm
             prev_value = copy(game.get_board())
+            prev_player = game.get_current_player()
             game.single_move(coordinates, slide)
-            print("root")
-            print(game)
+            game.set_current_player(1 - prev_player)
             child_evaluation = self.__min_value(game, alpha, beta, 1)
             game.set_board(prev_value)
-            print("root")
-            print(game)
+            game.set_current_player(prev_player)
             if child_evaluation > best_eval:
                 best_eval = child_evaluation
                 action = pm
@@ -224,16 +226,17 @@ class MinMaxPlayer(Player):
             return self.__eval3(game)
 
         best_eval = self._MAX_VALUE
-        possible_moves = game.get_available_moves()
+        possible_moves = game.get_available_moves(clear=False)
 
         for pm in possible_moves:
             coordinates, slide = pm
             prev_value = copy(game.get_board())
+            prev_player = game.get_current_player()
             game.single_move(coordinates, slide)
-
-            print(game)
+            game.set_current_player(1 - prev_player)
             best_eval = min(best_eval, self.__max_value(game, alpha, beta, depth + 1))      
             game.set_board(prev_value)  
+            game.set_current_player(prev_player)
             
             beta = min(beta, best_eval)    
             if beta <= alpha:
@@ -257,16 +260,17 @@ class MinMaxPlayer(Player):
             return self.__eval3(game)
 
         best_eval = self._MIN_VALUE
-        possible_moves = game.get_available_moves()
+        possible_moves = game.get_available_moves(clear=False)
 
         for pm in possible_moves:
             coordinates, slide = pm
             prev_value = copy(game.get_board())
+            prev_player = game.get_current_player()
             game.single_move(coordinates, slide)
-
-            print(game)
+            game.set_current_player(1 - prev_player)
             best_eval = max(best_eval, self.__min_value(game, alpha, beta, depth + 1))
             game.set_board(prev_value)
+            game.set_current_player(prev_player)
             
             alpha = max(alpha, best_eval)
             if beta <= alpha:
