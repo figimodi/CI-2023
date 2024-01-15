@@ -1,43 +1,236 @@
+from abc import ABC, abstractmethod
 from copy import copy, deepcopy
 from enum import Enum
-from typing import NamedTuple
 import numpy as np
 import sys
 import io
+import pickle
 
-class Players(NamedTuple):
-    p1: 'Player'
-    p2: 'Player'
+# Rules on PDF and https://cdn.1j1ju.com/medias/a8/5e/26-quixo-rulebook.pdf
 
-class Coordinates(NamedTuple):
-    '''Coordinates on the board.'''
-    x: int
-    y: int
 
-class Slide(Enum):
-    '''Type of slides, for example: TOP means that we push from the TOP to the BOTTOM.'''
+class Move(Enum):
+    '''
+    Selects where you want to place the taken piece. The rest of the pieces are shifted
+    '''
     TOP = 0
     BOTTOM = 1
     LEFT = 2
     RIGHT = 3
 
-class Move(NamedTuple):
-    '''Combination of coordinates and type of slide.'''
-    coordinates: Coordinates
-    slide: Slide
+
+class Player(ABC):
+    def __init__(self) -> None:
+        '''You can change this for your player if you need to handle state/have memory'''
+        pass
+
+    @abstractmethod
+    def make_move(self, game: 'Game') -> tuple[tuple[int, int], Move]:
+        '''
+        The game accepts coordinates of the type (X, Y). X goes from left to right, while Y goes from top to bottom, as in 2D graphics.
+        Thus, the coordinates that this method returns shall be in the (X, Y) format.
+
+        game: the Quixo game. You can use it to override the current game with yours, but everything is evaluated by the main game
+        return values: this method shall return a tuple of X,Y positions and a move among TOP, BOTTOM, LEFT and RIGHT
+        '''
+        pass
+
 
 class Game(object):
+    def __init__(self) -> None:
+        self._board = np.ones((5, 5), dtype=np.uint8) * -1
+        self.current_player_idx = 1
+
+    def get_board(self) -> np.ndarray:
+        '''
+        Returns the board
+        '''
+        return deepcopy(self._board)
+
+    def get_current_player(self) -> int:
+        '''
+        Returns the current player
+        '''
+        return deepcopy(self.current_player_idx)
+
+    def print(self):
+        '''Prints the board. -1 are neutral pieces, 0 are pieces of player 0, 1 pieces of player 1'''
+        print(self._board)
+
+    def check_winner(self) -> int:
+        '''Check the winner. Returns the player ID of the winner if any, otherwise returns -1'''
+        # for each row
+        player = self.get_current_player()
+        winner = -1
+        for x in range(self._board.shape[0]):
+            # if a player has completed an entire row
+            if self._board[x, 0] != -1 and all(self._board[x, :] == self._board[x, 0]):
+                # return winner is this guy
+                winner = self._board[x, 0]
+        if winner > -1 and winner != self.get_current_player():
+            return winner
+        # for each column
+        for y in range(self._board.shape[1]):
+            # if a player has completed an entire column
+            if self._board[0, y] != -1 and all(self._board[:, y] == self._board[0, y]):
+                # return the relative id
+                winner = self._board[0, y]
+        if winner > -1 and winner != self.get_current_player():
+            return winner
+        # if a player has completed the principal diagonal
+        if self._board[0, 0] != -1 and all(
+            [self._board[x, x]
+                for x in range(self._board.shape[0])] == self._board[0, 0]
+        ):
+            # return the relative id
+            winner = self._board[0, 0]
+        if winner > -1 and winner != self.get_current_player():
+            return winner
+        # if a player has completed the secondary diagonal
+        if self._board[0, -1] != -1 and all(
+            [self._board[x, -(x + 1)]
+             for x in range(self._board.shape[0])] == self._board[0, -1]
+        ):
+            # return the relative id
+            winner = self._board[0, -1]
+        return winner
+
+    def play(self, player1: Player, player2: Player) -> int:
+        '''Play the game. Returns the winning player'''
+        players = [player1, player2]
+        winner = -1
+        while winner < 0:
+            self.current_player_idx += 1
+            self.current_player_idx %= len(players)
+            ok = False
+            while not ok:
+                from_pos, slide = players[self.current_player_idx].make_move(
+                    self)
+                ok = self.__move(from_pos, slide, self.current_player_idx)
+            winner = self.check_winner()
+        return winner
+
+    def __move(self, from_pos: tuple[int, int], slide: Move, player_id: int) -> bool:
+        '''Perform a move'''
+        if player_id > 2:
+            return False
+        # Oh God, Numpy arrays
+        prev_value = deepcopy(self._board[(from_pos[1], from_pos[0])])
+        acceptable = self.__take((from_pos[1], from_pos[0]), player_id)
+        if acceptable:
+            acceptable = self.__slide(from_pos, slide)
+            if not acceptable:
+                self._board[(from_pos[1], from_pos[0])] = deepcopy(prev_value)
+        return acceptable
+
+    def __take(self, from_pos: tuple[int, int], player_id: int) -> bool:
+        '''Take piece'''
+        # acceptable only if in border
+        acceptable: bool = (
+            # check if it is in the first row
+            (from_pos[0] == 0 and from_pos[1] < 5)
+            # check if it is in the last row
+            or (from_pos[0] == 4 and from_pos[1] < 5)
+            # check if it is in the first column
+            or (from_pos[1] == 0 and from_pos[0] < 5)
+            # check if it is in the last column
+            or (from_pos[1] == 4 and from_pos[0] < 5)
+            # and check if the piece can be moved by the current player
+        ) and (self._board[from_pos] < 0 or self._board[from_pos] == player_id)
+        if acceptable:
+            self._board[from_pos] = player_id
+        return acceptable
+
+    def __slide(self, from_pos: tuple[int, int], slide: Move) -> bool:
+        '''Slide the other pieces'''
+        # define the corners
+        SIDES = [(0, 0), (0, 4), (4, 0), (4, 4)]
+        # if the piece position is not in a corner
+        if from_pos not in SIDES:
+            # if it is at the TOP, it can be moved down, left or right
+            acceptable_top: bool = from_pos[0] == 0 and (
+                slide == Move.BOTTOM or slide == Move.LEFT or slide == Move.RIGHT
+            )
+            # if it is at the BOTTOM, it can be moved up, left or right
+            acceptable_bottom: bool = from_pos[0] == 4 and (
+                slide == Move.TOP or slide == Move.LEFT or slide == Move.RIGHT
+            )
+            # if it is on the LEFT, it can be moved up, down or right
+            acceptable_left: bool = from_pos[1] == 0 and (
+                slide == Move.BOTTOM or slide == Move.TOP or slide == Move.RIGHT
+            )
+            # if it is on the RIGHT, it can be moved up, down or left
+            acceptable_right: bool = from_pos[1] == 4 and (
+                slide == Move.BOTTOM or slide == Move.TOP or slide == Move.LEFT
+            )
+        # if the piece position is in a corner
+        else:
+            # if it is in the upper left corner, it can be moved to the right and down
+            acceptable_top: bool = from_pos == (0, 0) and (
+                slide == Move.BOTTOM or slide == Move.RIGHT)
+            # if it is in the lower left corner, it can be moved to the right and up
+            acceptable_left: bool = from_pos == (4, 0) and (
+                slide == Move.TOP or slide == Move.RIGHT)
+            # if it is in the upper right corner, it can be moved to the left and down
+            acceptable_right: bool = from_pos == (0, 4) and (
+                slide == Move.BOTTOM or slide == Move.LEFT)
+            # if it is in the lower right corner, it can be moved to the left and up
+            acceptable_bottom: bool = from_pos == (4, 4) and (
+                slide == Move.TOP or slide == Move.LEFT)
+        # check if the move is acceptable
+        acceptable: bool = acceptable_top or acceptable_bottom or acceptable_left or acceptable_right
+        # if it is
+        if acceptable:
+            # take the piece
+            piece = self._board[from_pos]
+            # if the player wants to slide it to the left
+            if slide == Move.LEFT:
+                # for each column starting from the column of the piece and moving to the left
+                for i in range(from_pos[1], 0, -1):
+                    # copy the value contained in the same row and the previous column
+                    self._board[(from_pos[0], i)] = self._board[(
+                        from_pos[0], i - 1)]
+                # move the piece to the left
+                self._board[(from_pos[0], 0)] = piece
+            # if the player wants to slide it to the right
+            elif slide == Move.RIGHT:
+                # for each column starting from the column of the piece and moving to the right
+                for i in range(from_pos[1], self._board.shape[1] - 1, 1):
+                    # copy the value contained in the same row and the following column
+                    self._board[(from_pos[0], i)] = self._board[(
+                        from_pos[0], i + 1)]
+                # move the piece to the right
+                self._board[(from_pos[0], self._board.shape[1] - 1)] = piece
+            # if the player wants to slide it upward
+            elif slide == Move.TOP:
+                # for each row starting from the row of the piece and going upward
+                for i in range(from_pos[0], 0, -1):
+                    # copy the value contained in the same column and the previous row
+                    self._board[(i, from_pos[1])] = self._board[(
+                        i - 1, from_pos[1])]
+                # move the piece up
+                self._board[(0, from_pos[1])] = piece
+            # if the player wants to slide it downward
+            elif slide == Move.BOTTOM:
+                # for each row starting from the row of the piece and going downward
+                for i in range(from_pos[0], self._board.shape[0] - 1, 1):
+                    # copy the value contained in the same column and the following row
+                    self._board[(i, from_pos[1])] = self._board[(
+                        i + 1, from_pos[1])]
+                # move the piece down
+                self._board[(self._board.shape[0] - 1, from_pos[1])] = piece
+        return acceptable
+
+
+class MyGame(Game):
     '''
     This class represents the state of the game, along with the board,
     the current turn, the available moves in the position and the winner when
     the match is over.
     '''
 
-    def __init__(self, player1: int, player2: int, name1: str = 'player1', name2: str = 'player2') -> None:
-        self.winner: int = None
-        self._current_player_idx = 1
-        self.players = Players(player1, player2)
-        self._board = np.ones((5, 5), dtype=np.uint8) * -1
+    def __init__(self) -> None:
+        super().__init__()
         self._available_moves_list: list[Move] = list()
         self._emojis = ['❌', '⭕️', '⚪️']
 
@@ -46,7 +239,7 @@ class Game(object):
         output_buffer = io.StringIO()
         sys.stdout = output_buffer
 
-        print('╔════╤════╤════╤════╤════╗ ') 
+        print('╔════╤════╤════╤════╤════╗ ')
 
         for r, row in enumerate(self._board):
             print('║', end=' ')
@@ -58,80 +251,27 @@ class Game(object):
                 else:
                     print('║', end=' ')
 
-            if r < 4:        
+            if r < 4:
                 print("\n╟────┼────┼────┼────┼────╢")
 
-        print('\n╚════╧════╧════╧════╧════╝') 
+        print('\n╚════╧════╧════╧════╧════╝')
 
         sys.stdout = original_stdout
         captured_output = output_buffer.getvalue()
         return captured_output
 
-    def get_board(self) -> np.array:
-        return self._board
-
     def set_board(self, board: np.array) -> None:
         self._board = board
 
-    def get_current_player(self) -> int:
-        return self._current_player_idx
-
     def set_current_player(self, player_idx) -> None:
-        self._current_player_idx = player_idx
+        self.current_player_idx = player_idx
 
-    def check_winner(self) -> int:
-        '''Check the winner. Returns the player ID of the winner if any, otherwise returns -1.'''
-        # Check the rows
-        for x in range(self._board.shape[0]):
-            if all(self._board[x, :] == self._board[x, 0]) and self._board[x, 0] != -1:
-                return self._board[x, 0]
-        
-        # Check the columns
-        for y in range(self._board.shape[0]):
-            if all(self._board[:, y] == self._board[0, y]) and self._board[0, y] != -1:
-                return self._board[0, y]
-        
-        # Check the diagonals
-        if all([self._board[x, x] for x in range(self._board.shape[0])] == self._board[0, 0]) and self._board[0, 0] != -1:
-            return self._board[0, 0]
-        if all([self._board[x, -x-1] for x in range(self._board.shape[0])] == self._board[0, -1]) and self._board[0, -1] != -1:
-            return self._board[0, -1]
-
-        # TODO: add the case in which there are two different five-in-a-row combinations -> wins the opponent
-
-        return None
-
-    def play(self) -> int:
-        '''Play the game. Returns the winning player.'''
-        winner = None
-        while winner is None:
-            self._current_player_idx += 1
-            self._current_player_idx %= len(self.players)
-            valid = False
-            while not valid:
-                coordinates, slide = self.players[self._current_player_idx].make_move(self)
-                valid = self.__move(coordinates, slide)
-                if not valid and self.players[self._current_player_idx].is_human():
-                    print("That's an invalid move, please reenter your move:")
-            
-            # Activate the following print if at least one of the player is human
-            if self.players[0].is_human() or self.players[1].is_human():
-                print(self)
-                
-            # Check if the game has a winner
-            winner = self.check_winner()
-
-        # Assing the winner to the class and return the corresponing ID
-        self.winner = winner
-        
-        return winner
-
-    def single_move(self, coordinates: Coordinates, slide: Slide) -> None:
+    def single_move(self, from_pos: tuple[int, int], move: Move) -> None:
         '''Makes a single move on the board.'''
-        ok = self.__move(coordinates, slide)
+        ok = self._Game__move(from_pos, move, self.current_player_idx)
         assert ok == True
 
-    def get_available_moves(self, clear: bool = True) -> list[Move]:
+    def get_available_moves(self, clear: bool = True) -> list[tuple[tuple[int, int], Move]]:
         '''Return the possible moves in the current position.'''
         # Calculate all possible available moves from the current state
         new_available_moves = self.__available_moves()
@@ -144,16 +284,16 @@ class Game(object):
 
         return new_available_moves
 
-    def ownership_cell(self, player: 'Player', coordinates: Coordinates) -> bool:
+    def ownership_cell(self, bot_symbol: int, from_pos: tuple[int, int]) -> bool:
         '''TODO: documentation'''
 
-        if self._board[coordinates] == -1:
+        if self._board[from_pos] == -1:
             return None
-        elif player == self.players[self._board[coordinates]]:
+        elif bot_symbol == self._board[from_pos]:
             return True
-        
+
         return False
-        
+
     def check_sequence(self, start: int, end: int, step: int) -> bool:
         '''TODO: documentation'''
         if self._board[start % 5, int(start / 5)] == -1:
@@ -162,7 +302,7 @@ class Game(object):
         result = True
         squares_flat = [i for i in range(start, end, step)]
         squares = list(map(lambda s : (s % 5, int(s / 5)), squares_flat))
-        
+
         for s in range(len(squares) - 1):
             if self._board[squares[s]] != self._board[squares[s + 1]]:
                 return False
@@ -175,105 +315,34 @@ class Game(object):
 
     def reset(self) -> None:
         '''Reset the state of the board.'''
-        self.winner = None
-        self._current_player_idx = 1
+        self.current_player_idx = 1
         self._board = np.ones((5, 5), dtype=np.uint8) * -1
         self._available_moves_list = list()
-    
-    def __move(self, coordinates: Coordinates, slide: Slide, mock: bool=False) -> bool:
-        '''Perform a move.'''
-        # Save the sate as it is now
-        prev_value = copy(self._board)
 
-        # Check the validity of the move
-        acceptable = self.__take(coordinates)
-        if acceptable:
-            acceptable = self.__slide(coordinates, slide)
-            if not acceptable:
-                self._board = copy(prev_value)
-
-        # Allow to perform __move but without affecting the board
-        if mock:
-            self._board = copy(prev_value)
-
-        return acceptable
-
-    def __take(self, coordinates: Coordinates) -> bool:
-        '''Take piece  and 'flip it' facing the player symbol.'''
-        # Acceptable only if in border
-        acceptable: bool = ((coordinates[0] == 0 and coordinates[1] < 5) or (coordinates[0] == 4 and coordinates[1] < 5) or (
-            coordinates[1] == 0 and coordinates[0] < 5) or (coordinates[1] == 4 and coordinates[0] < 5)) and (self._board[coordinates] < 0 or self._board[coordinates] == self._current_player_idx)
-        if acceptable:
-            self._board[coordinates] = self._current_player_idx
-        return acceptable
-
-    def __slide(self, coordinates: Coordinates, slide: Slide) -> bool:
-        '''Slide the other pieces.'''
-        SIDES = [(0, 0), (0, 4), (4, 0), (4, 4)]
-        if coordinates not in SIDES:
-            acceptable_top: bool = coordinates[0] == 0 and (
-                slide == Slide.BOTTOM or slide == Slide.LEFT or slide == Slide.RIGHT)
-            acceptable_bottom: bool = coordinates[0] == 4 and (
-                slide == Slide.TOP or slide == Slide.LEFT or slide == Slide.RIGHT)
-            acceptable_left: bool = coordinates[1] == 0 and (
-                slide == Slide.BOTTOM or slide == Slide.TOP or slide == Slide.RIGHT)
-            acceptable_right: bool = coordinates[1] == 4 and (
-                slide == Slide.BOTTOM or slide == Slide.TOP or slide == Slide.LEFT)
-        else:
-            # top left
-            acceptable_top: bool = coordinates == (0, 0) and (
-                slide == Slide.BOTTOM or slide == Slide.RIGHT)
-            # top right
-            acceptable_right: bool = coordinates == (4, 0) and (
-                slide == Slide.TOP or slide == Slide.RIGHT)
-            # bottom left
-            acceptable_left: bool = coordinates == (0, 4) and (
-                slide == Slide.BOTTOM or slide == Slide.LEFT)
-            # bottom right
-            acceptable_bottom: bool = coordinates == (4, 4) and (
-                slide == Slide.TOP or slide == Slide.LEFT)
-
-        acceptable: bool = acceptable_top or acceptable_bottom or acceptable_left or acceptable_right
-        
-        # If the move is allowed, then slide the pieces on the corresponding column/row
-        if acceptable:
-            if slide == Slide.TOP or slide == Slide.BOTTOM:
-                column = [row[coordinates[1]] for row in self._board]
-                column = np.append(column, column[coordinates[0]])
-                column = np.delete(column, coordinates[0])
-                if slide == Slide.TOP:
-                    column = np.concatenate((column[-1:], column[:-1]), axis=0)
-                for i, row in enumerate(self._board):
-                    row[coordinates[1]] = column[i]
-            elif slide == Slide.LEFT or Slide.RIGHT:
-                row = self._board[coordinates[0]]
-                row = np.append(row, row[coordinates[1]])
-                row = np.delete(row, coordinates[1])
-                if slide == Slide.LEFT:
-                    row = np.concatenate((row[-1:], row[:-1]), axis=0)
-                self._board[coordinates[0]] = row
-
-        return acceptable
-
-    def __available_moves(self) -> list[Move]:
+    def __available_moves(self) -> list[tuple[tuple[int, int], Move]]:
         '''Calculate all the possible moves from the current state.'''
         moves = list()
-        
+        prev_value = deepcopy(self._board)
+
         # Try all possible moves (with mock=True not to modify the board)
         for x in range(5):
-            for slide in Slide:
-                ok = self.__move((0, x), slide, mock=True)
+            for slide in Move:
+                ok = self._Game__move((0, x), slide, self.current_player_idx)
+                self._board = deepcopy(prev_value)
                 if ok:
                     moves.append(((0, x), slide))
-                ok = self.__move((4, x), slide, mock=True)
+                ok = self._Game__move((4, x), slide, self.current_player_idx)
+                self._board = deepcopy(prev_value)
                 if ok:
                     moves.append(((4, x), slide))
-                
+
                 if x != 0 and x != 4:
-                    ok = self.__move((x, 0), slide, mock=True)
+                    ok = self._Game__move((x, 0), slide, self.current_player_idx)
+                    self._board = deepcopy(prev_value)
                     if ok:
-                        moves.append(((x, 0), slide))     
-                    ok = self.__move((x, 4), slide, mock=True)
+                        moves.append(((x, 0), slide))
+                    ok = self._Game__move((x, 4), slide, self.current_player_idx)
+                    self._board = deepcopy(prev_value)
                     if ok:
                         moves.append(((x, 4), slide))
 
