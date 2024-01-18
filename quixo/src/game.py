@@ -60,40 +60,32 @@ class Game(object):
     def check_winner(self) -> int:
         '''Check the winner. Returns the player ID of the winner if any, otherwise returns -1'''
         # for each row
-        player = self.get_current_player()
-        winner = -1
         for x in range(self._board.shape[0]):
             # if a player has completed an entire row
             if self._board[x, 0] != -1 and all(self._board[x, :] == self._board[x, 0]):
-                # return winner is this guy
-                winner = self._board[x, 0]
-        if winner > -1 and winner != self.get_current_player():
-            return winner
+                # return the relative id
+                return self._board[x, 0]
         # for each column
         for y in range(self._board.shape[1]):
             # if a player has completed an entire column
             if self._board[0, y] != -1 and all(self._board[:, y] == self._board[0, y]):
                 # return the relative id
-                winner = self._board[0, y]
-        if winner > -1 and winner != self.get_current_player():
-            return winner
+                return self._board[0, y]
         # if a player has completed the principal diagonal
         if self._board[0, 0] != -1 and all(
             [self._board[x, x]
                 for x in range(self._board.shape[0])] == self._board[0, 0]
         ):
             # return the relative id
-            winner = self._board[0, 0]
-        if winner > -1 and winner != self.get_current_player():
-            return winner
+            return self._board[0, 0]
         # if a player has completed the secondary diagonal
         if self._board[0, -1] != -1 and all(
             [self._board[x, -(x + 1)]
              for x in range(self._board.shape[0])] == self._board[0, -1]
         ):
             # return the relative id
-            winner = self._board[0, -1]
-        return winner
+            return self._board[0, -1]
+        return -1
 
     def play(self, player1: Player, player2: Player) -> int:
         '''Play the game. Returns the winning player'''
@@ -104,8 +96,7 @@ class Game(object):
             self.current_player_idx %= len(players)
             ok = False
             while not ok:
-                from_pos, slide = players[self.current_player_idx].make_move(
-                    self)
+                from_pos, slide = players[self.current_player_idx].make_move(self)
                 ok = self.__move(from_pos, slide, self.current_player_idx)
             winner = self.check_winner()
         return winner
@@ -118,7 +109,7 @@ class Game(object):
         prev_value = deepcopy(self._board[(from_pos[1], from_pos[0])])
         acceptable = self.__take((from_pos[1], from_pos[0]), player_id)
         if acceptable:
-            acceptable = self.__slide(from_pos, slide)
+            acceptable = self.__slide((from_pos[1], from_pos[0]), slide)
             if not acceptable:
                 self._board[(from_pos[1], from_pos[0])] = deepcopy(prev_value)
         return acceptable
@@ -285,7 +276,7 @@ class MyGame(Game):
         return new_available_moves
 
     def ownership_cell(self, bot_symbol: int, from_pos: tuple[int, int]) -> bool:
-        '''TODO: documentation'''
+        '''It returns a boolean that represents the ownership of the cell regardin the current bot (bot_symbol)'''
 
         if self._board[from_pos] == -1:
             return None
@@ -295,19 +286,16 @@ class MyGame(Game):
         return False
 
     def check_sequence(self, start: int, end: int, step: int) -> bool:
-        '''TODO: documentation'''
-        if self._board[start % 5, int(start / 5)] == -1:
+        '''It checks that the entirety of the sequence (given by start, end, step) belongs to the same player'''
+        if self._board[start // 5, start % 5] == -1:
             return False
 
-        result = True
-        squares_flat = [i for i in range(start, end, step)]
-        squares = list(map(lambda s : (s % 5, int(s / 5)), squares_flat))
+        squares_array = [i for i in range(start, end + 1, step)]
+        squares_matrix = list(map(lambda s : (s // 5, s % 5), squares_array))
+        squares_content = [self._board[s] for s in squares_matrix]
 
-        for s in range(len(squares) - 1):
-            if self._board[squares[s]] != self._board[squares[s + 1]]:
-                return False
-
-        return result
+        # check that the entire sequence of coordinates contains the same value (x or o)
+        return all(sc == squares_content[0] for sc in squares_content)
 
     def get_hash(self) -> str:
         '''Hashes the state of the board.'''
